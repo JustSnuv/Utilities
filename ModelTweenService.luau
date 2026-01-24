@@ -21,6 +21,7 @@ function ModelTweenService:Create(Model: Model, Info: TweenInfo, Goal: CFrame)
 	self.Value.Value = Model.PrimaryPart.CFrame
 
 	self.Completed = Instance.new("BindableEvent")
+	self.Canceled = Instance.new("BindableEvent")
 	self.Played = false
 	self.IsPlaying = false
 
@@ -34,7 +35,12 @@ function ModelTweenService:Create(Model: Model, Info: TweenInfo, Goal: CFrame)
 	self.Tween.Completed:Connect(function(State)
 		self.IsPlaying = false
 		self.Played = true
-		self.Completed:Fire(State)
+
+		if State == Enum.PlaybackState.Cancelled then
+			self.Canceled:Fire()
+		else
+			self.Completed:Fire()
+		end
 	end)
 	
 	return self
@@ -64,6 +70,7 @@ function ModelTweenService:Destroy()
 	if self.Connection then self.Connection:Disconnect() self.Connection = nil end
 	if self.Value then self.Value:Destroy() self.Value = nil end
 	if self.Completed then self.Completed:Destroy() self.Completed = nil end
+	if self.Canceled then self.Canceled:Destroy() self.Canceled = nil end
 end
 
 return ModelTweenService
