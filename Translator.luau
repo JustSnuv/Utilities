@@ -58,16 +58,6 @@ local function getTranslation(key: string): string
 	return value or ""
 end
 
-function Translations.translateUI(uiParent: Instance)
-	for _, element in pairs(uiParent:GetDescendants()) do
-		local key = element:GetAttribute("HatchTranslationKey")
-		if key and element:IsA("TextLabel") or element:IsA("TextButton") then
-			local translationValue = getTranslation(key)
-			element.Text = translationValue
-		end
-	end
-end
-
 function Translations.translate(key: string)
 	local translation = keyLookup[key]
 	if not translation then
