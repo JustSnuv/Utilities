@@ -1,6 +1,7 @@
 --// Suffix by Snuv \\--
 
 local Suffix = {}
+local Classic = true
 
 -- Round helpers
 local function roundDecimal(n, decimals)
@@ -11,69 +12,93 @@ end
 
 -- Adds commas to large numbers
 local function addCommas(num)
-	local left, digits, right = string.match(tostring(num), '^([^%d]*%d)(%d*)(.-)$')
-	digits = digits:reverse():gsub("(%d%d%d)", "%1,"):reverse()
-	return left .. digits .. right
+	local str = tostring(math.floor(num))
+	-- Pattern logic: find groups of 3 digits and add a comma
+	local formatted = str:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	-- Remove leading comma if it exists (happens with exact multiples of 3)
+	if formatted:sub(1, 1) == "," then
+		formatted = formatted:sub(2)
+	end
+	return formatted
 end
 
--- Predefined base suffixes (start at 1 million)
+-- Predefined base suffixes
 local baseSuffixes = {
-	{1e6, "M"},
-	{1e9, "B"},
-	{1e12, "T"},
-	{1e21, "KT"},
-	{1e32, "MT"},
-	{1e43, "BT"},
-	{1e54, "TT"},
+	Custom = {
+		{1e6, "M"},
+		{1e9, "B"},
+		{1e12, "T"},
+		{1e15, "KT"},
+		{1e18, "MT"},
+		{1e21, "BT"},
+		{1e24, "TT"},
+	},
+	Classic = {
+		{1e6, "M"},
+		{1e9, "B"},
+		{1e12, "T"},
+		{1e15, "Qa"},
+		{1e18, "Qi"},
+		{1e21, "Sx"},
+		{1e24, "Sp"},
+		{1e27, "Oc"},
+		{1e30, "No"},
+		{1e33, "Dc"},
+		{1e36, "Ud"},
+		{1e39, "Dd"},
+		{1e42, "Td"},
+		{1e45, "Qad"},
+		{1e48, "Qid"},
+		{1e51, "Sxd"},
+		{1e54, "Spd"},
+	}
 }
 
+local function formatLargeNumber(Input, Suffixes)
+	-- Iterate backwards through suffixes to find the largest match
+	for i = #Suffixes, 1, -1 do
+		local limit, suffix = Suffixes[i][1], Suffixes[i][2]
+		if Input >= limit then
+			local scaled = Input / limit
+			local rounded = roundDecimal(scaled)
+			
+			-- If the rounded number is >= 1000 (e.g. 1,200M), add commas to it
+			local displayValue = (rounded >= 1000) and addCommas(rounded) or tostring(rounded)
+			return displayValue .. suffix
+		end
+	end
+	
+	-- For numbers smaller than the first suffix (1M)
+	if Input >= 1000 then
+		return addCommas(Input)
+	end
+	return tostring(roundDecimal(Input))
+end
+
 -- Adds a suffix to large numbers
-function Suffix.Number(n)
+function Suffix.Number(n: number?): string
 	assert(typeof(n) == "number", "[Suffix.Number] input must be a number")
-
-	-- Numbers below 1 million show full number
-	if n < 1e6 then
-		if n >= 1000 then
-			return addCommas(math.floor(n))
-		else
-			return tostring(roundDecimal(n))
-		end
+	
+	if n >= 1.7976931348e308 then -- Greater than max float
+		return "Infinite"
+	elseif n < 0 then
+		-- Handle negatives by formatting the absolute value and prepending "-"
+		return "-" .. formatLargeNumber(math.abs(n), Classic and baseSuffixes.Classic or baseSuffixes.Custom)
+	else
+		return formatLargeNumber(n, Classic and baseSuffixes.Classic or baseSuffixes.Custom)
 	end
-
-	local value, suffix = 1, ""
-	for _, entry in ipairs(baseSuffixes) do
-		if n >= entry[1] then
-			value, suffix = entry[1], entry[2]
-		else
-			break
-		end
-	end
-
-	local scaled = n / value
-	local display = roundDecimal(scaled)
-
-	-- Format string with commas if needed
-	local str = tostring(display)
-	if display >= 1000 then
-		str = addCommas(math.floor(display))
-	end
-
-	return str .. suffix
 end
 
 -- Get only the suffix for a number
 function Suffix.GetSuffix(n)
 	assert(typeof(n) == "number", "[Suffix.GetSuffix] input must be a number")
 
-	if n < 1e6 then
-		return "" -- no suffix for numbers below 1 million
-	end
-
+	local suffixes = Classic and baseSuffixes.Classic or baseSuffixes.Custom
 	local suffix = ""
-	for _, entry in ipairs(baseSuffixes) do
-		if n >= entry[1] then
-			suffix = entry[2]
-		else
+	
+	for i = #suffixes, 1, -1 do
+		if n >= suffixes[i][1] then
+			suffix = suffixes[i][2]
 			break
 		end
 	end
@@ -95,12 +120,13 @@ function Suffix.Time(seconds, mode)
 	mode = mode or "single" -- "single" or "all"
 
 	local result = {}
+	local remaining = seconds
 
 	for _, unit in ipairs(timeUnits) do
 		local unitValue, unitName = unit[1], unit[2]
-		if seconds >= unitValue then
-			local count = math.floor(seconds / unitValue)
-			seconds = seconds - (count * unitValue)
+		if remaining >= unitValue then
+			local count = math.floor(remaining / unitValue)
+			remaining = remaining - (count * unitValue)
 			table.insert(result, count .. " " .. unitName .. (count > 1 and "s" or ""))
 			if mode == "single" then
 				break
