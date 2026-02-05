@@ -5,22 +5,23 @@ local RunService = game:GetService("RunService")
 
 local CoreGUI = {}
 
-function CoreGUI.Toggle(Type: Enum.CoreGuiType, Enable: boolean)
-	if not Type then return end
+function CoreGUI.Toggle(Type: any, Enable: boolean)
+	if Type == nil then return end
 
-	local Disabled = false
-	local DisableConnection
+	local Success = false
+	local Connection
 
-	DisableConnection = RunService.Heartbeat:Connect(function()
-		if not Disabled then
-			local success, err = pcall(function()
+	Connection = RunService.Heartbeat:Connect(function()
+		local ok, err = pcall(function()
+			if typeof(Type) == "EnumItem" then
 				StarterGui:SetCoreGuiEnabled(Type, Enable)
-			end)
-
-			if success then
-				Disabled = true
-				DisableConnection:Disconnect()
+			elseif typeof(Type) == "string" then
+				StarterGui:SetCore(Type, Enable)
 			end
+		end)
+
+		if ok then
+			Connection:Disconnect()
 		end
 	end)
 end
