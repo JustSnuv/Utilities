@@ -9,27 +9,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 // Single-table structure, nested objects stored as JSON
-const defaultData = {
-  CANDY: 0,
-  COOKIES: 0,
-  GAMBLED: 0,
-  STASHED: 0,
-  ROBBED: 0,
-  TOTAL_CANDY: 0,
-  UPGRADES: { BASKET: 1 },
-  CAPTCHA: 0,
-  DAILY: { LAST: "1999.00.00", STREAK: 0 },
-  INVENTORY: { },
-  QUEST: { },
-  SKILL: { },
-};
+const defaultData = {};
 
-const defaultGlobalData = {
-  TOWERSIZE: 0,
-  COMMANDS_USED: 0,
-  TOTAL_SESSIONS: 0,
-  GLOBAL_MULTIPLIER: 1
-};
+const defaultGlobalData = {};
 
 // ------------------ Helpers ------------------
 function runAsync(sql, params = []) {
